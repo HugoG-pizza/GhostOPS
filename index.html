@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Roster Manager</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚔️</text></svg>">
+</head>
+<body>
+
+<div class="container" style="max-width: 1200px;"> <div class="panel-header" style="margin-top: 20px;">
+        <h2 style="color: var(--accent); margin-bottom: 5px;">⚔️ Event Roster Manager</h2>
+        <p class="subtitle">Clique sur une case pour changer le niveau (NAN ➔ 3⭐ ➔ 4⭐)</p>
+    </div>
+
+    <div class="filter-bar" style="justify-content: space-between; background: #222; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <span style="color:#aaa; font-weight:bold;">🔍 Aiguilleur : Qui possède...</span>
+            <select id="filterChar" style="width:150px;" onchange="renderGrid()">
+                <option value="ALL">Tous les persos</option>
+                </select>
+            <select id="filterLevel" style="width:100px;" onchange="renderGrid()">
+                <option value="ALL">Tous niveaux</option>
+                <option value="3⭐">3⭐ et +</option>
+                <option value="4⭐">4⭐ uniquement</option>
+            </select>
+            <button class="btn-cancel" onclick="resetFilters()">Reset</button>
+        </div>
+        <input type="text" id="searchPlayer" placeholder="Chercher un joueur..." style="width:200px;" oninput="renderGrid()">
+    </div>
+
+    <div style="overflow-x: auto; background: var(--card-bg); border-radius: 8px; border: 1px solid #444;">
+        <table class="roster-table" id="rosterTable">
+            <thead>
+                <tr id="tableHeader">
+                    <th>Joueur</th>
+                    </tr>
+            </thead>
+            <tbody id="tableBody">
+                </tbody>
+        </table>
+    </div>
+
+</div>
+
+<script type="module" src="script.js"></script>
+</body>
+</html>
