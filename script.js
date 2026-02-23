@@ -18,7 +18,7 @@ const db = getDatabase(app);
 const auth = getAuth();
 
 // --- PARAMÈTRES MÉTIER APP 3 ---
-const CHARACTERS = ["Adam", "Fiona","McGregor", "Tesla", "Schuyler", "Lucius", "Morrison"];
+const CHARACTERS = ["Adam", "Fiona","McGregor", "Tesla", "Skyler", "Lucius", "Morrison"];
 const RANK_POWER = { 'R5': 5, 'R4': 4, 'R3': 3, 'R2': 2, 'R1': 1, 'ABS': 0 };
 
 // --- DONNÉES ---
