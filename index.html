@@ -9,25 +9,27 @@
 </head>
 <body>
 
-<div class="container" style="max-width: 1200px;"> <div class="panel-header" style="margin-top: 20px;">
+<div class="container" style="max-width: 1200px;"> 
+    
+    <div class="panel-header" style="margin-top: 20px;">
         <h2 style="color: var(--accent); margin-bottom: 5px;">⚔️ Ghost OPS Manager</h2>
-        <p class="subtitle">Clique sur une case pour changer le niveau (NAN ➔ 3⭐ ➔ 4⭐)</p>
+        <p class="subtitle">Clique sur une case pour modifier le niveau d'un personnage</p>
     </div>
 
-    <div class="filter-bar" style="justify-content: space-between; background: #222; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <span style="color:#aaa; font-weight:bold;">🔍 Qui possède...</span>
-            <select id="filterChar" style="width:150px;" onchange="renderGrid()">
-                <option value="ALL">Tous les persos</option>
-                </select>
-            <select id="filterLevel" style="width:100px;" onchange="renderGrid()">
-                <option value="ALL">Tous niveaux</option>
-                <option value="3⭐">3⭐ et +</option>
-                <option value="4⭐">4⭐ uniquement</option>
+    <div class="filter-bar roster-filter-bar">
+        <div class="filter-group">
+            <span class="filter-label">🔍 Qui possède...</span>
+            <select id="filterChar" onchange="renderGrid()">
+                <option value="ALL">Tous les personnages</option>
             </select>
-            <button class="btn-cancel" onclick="resetFilters()">Reset</button>
+            <select id="filterLevel" onchange="renderGrid()">
+                <option value="ALL">Tous niveaux</option>
+                <option value="3⭐">3⭐</option>
+                <option value="4⭐">4⭐ et +</option>
+            </select>
+            <button class="btn-cancel responsive-btn" onclick="resetFilters()">Reset</button>
         </div>
-        <input type="text" id="searchPlayer" placeholder="Chercher un joueur..." style="width:200px;" oninput="renderGrid()">
+        <input type="text" id="searchPlayer" placeholder="Chercher un joueur..." oninput="renderGrid()">
     </div>
 
     <div style="overflow-x: auto; background: var(--card-bg); border-radius: 8px; border: 1px solid #444;">
@@ -42,6 +44,31 @@
         </table>
     </div>
 
+</div>
+
+<div id="rosterModal" class="modal-overlay" onclick="if(event.target.id === 'rosterModal') closeRosterModal()">
+    <div class="modal-box">
+        <h3 style="margin-top:0">Modifier un Personnage</h3>
+        
+        <div style="margin-bottom:15px; background: #222; padding: 10px; border-radius: 4px;">
+            <span style="color:#aaa;">Joueur :</span> <strong id="editRosterPlayer" style="color:var(--accent)"></strong><br>
+            <span style="color:#aaa;">Perso :</span> <strong id="editRosterChar"></strong>
+        </div>
+        
+        <div style="margin-bottom:15px">
+            <label style="color:#aaa; font-size:0.8em; text-transform:uppercase;">Nombre d'étoiles</label>
+            <select id="editRosterLevel" style="width:100%; margin-top:5px; padding:10px; background:var(--input-bg); color:white; border:1px solid #555; border-radius:4px; font-weight:bold;">
+                <option value="NAN">NAN (Non acquis / Faible)</option>
+                <option value="3⭐">3⭐</option>
+                <option value="4⭐">4+⭐</option>
+            </select>
+        </div>
+        
+        <div class="modal-buttons">
+            <button class="btn-cancel" onclick="closeRosterModal()">Annuler</button>
+            <button class="btn-save" onclick="confirmRosterEdit()">Valider</button>
+        </div>
+    </div>
 </div>
 
 <script type="module" src="script.js"></script>

@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, set, update, onValue, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { getDatabase, ref, set, update, onValue, push, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // --- CONFIGURATION FIREBASE ---
@@ -18,14 +18,12 @@ const db = getDatabase(app);
 const auth = getAuth();
 
 // --- PARAMÈTRES MÉTIER APP 3 ---
-// Tu peux modifier les noms ici, tout le reste s'adaptera automatiquement !
 const CHARACTERS = ["Adam", "Fiona","McGregor", "Tesla", "Schuyler", "Lucius", "Morrison"];
-const LEVELS = ["NAN", "3⭐", "4⭐"];
 const RANK_POWER = { 'R5': 5, 'R4': 4, 'R3': 3, 'R2': 2, 'R1': 1, 'ABS': 0 };
 
 // --- DONNÉES ---
 let members = [];
-let rosterData = {}; // Format: { "Pseudo": { "Perso 1": "3⭐", "Perso 2": "NAN"... } }
+let rosterData = {}; 
 
 // --- INIT ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -34,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, (user) => {
         if (user) {
             startDatabaseListener();
+            setTimeout(silentAutoBackup, 5000); // Lance le backup invisible après chargement
         } else {
             signInAnonymously(auth).catch(console.error);
         }
@@ -64,28 +63,61 @@ function startDatabaseListener() {
     });
 }
 
-// --- LOGIQUE METIER (CLIC POUR CHANGER DE NIVEAU) ---
+// --- LOGIQUE SAUVEGARDE INVISIBLE ---
+function silentAutoBackup() {
+    const sysRef = ref(db, 'app3/system/lastBackupDate');
+    get(sysRef).then(snap => {
+        const today = new Date().toISOString().split('T')[0];
+        if (snap.val() !== today) {
+            // Snapshot quotidien invisible
+            const backupName = `roster_snap_${today}`;
+            set(ref(db, `app3/backups/${backupName}`), { roster: rosterData, timestamp: new Date().toLocaleString() });
+            set(sysRef, today);
+            
+            // Log invisible
+            push(ref(db, 'app3/logs'), `[${new Date().toLocaleString()}] SYSTEM: Snapshot ${backupName} créé.`);
+        }
+    }).catch(console.error);
+}
 
-window.cycleLevel = function(playerName, characterName) {
+// --- LOGIQUE DE MODIFICATION (MODALE) ---
+
+window.openRosterModal = function(playerName, characterName) {
     if (!auth.currentUser) return;
 
-    // Récupérer le niveau actuel (ou NAN par défaut)
     const playerRoster = rosterData[playerName] || {};
     const currentLevel = playerRoster[characterName] || "NAN";
 
-    // Trouver le prochain niveau dans le cycle
-    let currentIndex = LEVELS.indexOf(currentLevel);
-    let nextIndex = (currentIndex + 1) % LEVELS.length;
-    let newLevel = LEVELS[nextIndex];
+    document.getElementById('editRosterPlayer').innerText = playerName;
+    document.getElementById('editRosterChar').innerText = characterName;
+    document.getElementById('editRosterLevel').value = currentLevel;
 
-    // Sauvegarder dans Firebase
-    const updates = {};
-    updates[`app3/roster/${playerName}/${characterName}`] = newLevel;
-    
-    update(ref(db), updates).catch(console.error);
+    document.getElementById('rosterModal').style.display = 'flex';
+}
 
-    // Optionnel: Ajouter un log pour tracer qui a modifié quoi
-    // push(ref(db, 'app3/logs'), `[${new Date().toLocaleString()}] ${playerName} -> ${characterName} = ${newLevel}`);
+window.closeRosterModal = function() {
+    document.getElementById('rosterModal').style.display = 'none';
+}
+
+window.confirmRosterEdit = function() {
+    const playerName = document.getElementById('editRosterPlayer').innerText;
+    const characterName = document.getElementById('editRosterChar').innerText;
+    const newLevel = document.getElementById('editRosterLevel').value;
+
+    const playerRoster = rosterData[playerName] || {};
+    const oldLevel = playerRoster[characterName] || "NAN";
+
+    if (newLevel !== oldLevel) {
+        // Enregistre la modif
+        const updates = {};
+        updates[`app3/roster/${playerName}/${characterName}`] = newLevel;
+        update(ref(db), updates).catch(console.error);
+
+        // Historique invisible des actions (log)
+        push(ref(db, 'app3/logs'), `[${new Date().toLocaleString()}] MODIF: ${playerName} - ${characterName} ➔ ${newLevel}`);
+    }
+
+    closeRosterModal();
 }
 
 // --- RENDU UI ---
@@ -105,33 +137,52 @@ window.renderGrid = function() {
     const filterLevel = document.getElementById('filterLevel').value;
     const search = document.getElementById('searchPlayer').value.toLowerCase();
 
-    // 1. Construire les en-têtes (Joueur + Les 7 persos)
+    // 1. En-têtes
     tableHeader.innerHTML = '<th style="text-align:left; padding-left:15px; width:200px;">Joueur</th>';
     CHARACTERS.forEach(c => {
-        // Mettre en surbrillance la colonne si elle est filtrée
         const isFiltered = (filterChar === c) ? 'color: var(--accent);' : '';
         tableHeader.innerHTML += `<th style="${isFiltered}">${c}</th>`;
     });
 
     tableBody.innerHTML = '';
 
-    // 2. Trier les membres (Par Rang puis par nom)
+    // 2. Trier
     let sortedMembers = [...members].sort((a, b) => {
         const diff = RANK_POWER[b.rank] - RANK_POWER[a.rank];
         return diff !== 0 ? diff : a.name.localeCompare(b.name);
     });
 
-    // 3. Appliquer les filtres
+    // 3. NOUVELLE LOGIQUE DE FILTRES INTELLIGENTS
     let filteredMembers = sortedMembers.filter(m => {
         // Filtre de nom
         if (search && !m.name.toLowerCase().includes(search)) return false;
         
-        // Filtre "Aiguilleur"
-        if (filterChar !== "ALL" && filterLevel !== "ALL") {
-            const charLvl = (rosterData[m.name] && rosterData[m.name][filterChar]) ? rosterData[m.name][filterChar] : "NAN";
-            if (filterLevel === "4⭐" && charLvl !== "4⭐") return false;
-            if (filterLevel === "3⭐" && charLvl === "NAN") return false; // Accepte 3* et 4*
+        const rData = rosterData[m.name] || {};
+
+        // Cas 1 : Seulement un Personnage sélectionné (montre ceux qui l'ont, donc != NAN)
+        if (filterChar !== "ALL" && filterLevel === "ALL") {
+            const lvl = rData[filterChar] || "NAN";
+            if (lvl === "NAN") return false;
         }
+        
+        // Cas 2 : Seulement un Niveau sélectionné (montre ceux qui ont AU MOINS un perso à ce niveau)
+        else if (filterChar === "ALL" && filterLevel !== "ALL") {
+            let hasLevelMatch = false;
+            for (let c of CHARACTERS) {
+                const lvl = rData[c] || "NAN";
+                if (filterLevel === "4⭐" && lvl === "4⭐") hasLevelMatch = true;
+                if (filterLevel === "3⭐" && (lvl === "3⭐" || lvl === "4⭐")) hasLevelMatch = true;
+            }
+            if (!hasLevelMatch) return false;
+        }
+
+        // Cas 3 : Personnage ET Niveau sélectionnés
+        else if (filterChar !== "ALL" && filterLevel !== "ALL") {
+            const lvl = rData[filterChar] || "NAN";
+            if (filterLevel === "4⭐" && lvl !== "4⭐") return false;
+            if (filterLevel === "3⭐" && lvl === "NAN") return false;
+        }
+
         return true;
     });
 
@@ -154,17 +205,16 @@ window.renderGrid = function() {
             const playerRoster = rosterData[m.name] || {};
             const lvl = playerRoster[c] || "NAN";
             
-            // Classes CSS selon le niveau
             let btnClass = "btn-nan";
             if(lvl === "3⭐") btnClass = "btn-3star";
             if(lvl === "4⭐") btnClass = "btn-4star";
 
-            // Atténuer les colonnes non concernées par le filtre pour une meilleure lisibilité
             let opacityStyle = (filterChar !== "ALL" && filterChar !== c) ? "opacity: 0.3;" : "";
 
+            // Ouvre la modale au lieu de cycler directement
             rowHTML += `
                 <td style="${opacityStyle}">
-                    <button class="roster-btn ${btnClass}" onclick="cycleLevel('${m.name}', '${c}')">
+                    <button class="roster-btn ${btnClass}" onclick="openRosterModal('${m.name}', '${c}')">
                         ${lvl}
                     </button>
                 </td>

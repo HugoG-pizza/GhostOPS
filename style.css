@@ -249,3 +249,67 @@ button.action-btn {
     background-color: #666 !important;
     opacity: 0.7;
 }
+
+/* ========================================= */
+/* RESPONSIVE FILTER BAR (APP 3)             */
+/* ========================================= */
+
+.roster-filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: space-between;
+    background: #222;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.filter-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    flex: 1;
+    min-width: 300px;
+}
+
+.filter-label {
+    color: #aaa;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.roster-filter-bar select {
+    flex: 1;
+    min-width: 130px;
+}
+
+#searchPlayer {
+    min-width: 200px;
+    flex: 0.5;
+}
+
+/* Format Mobile (Écrans étroits) */
+@media (max-width: 600px) {
+    .roster-filter-bar {
+        flex-direction: column;
+        padding: 12px;
+        gap: 12px;
+    }
+    
+    .filter-group {
+        min-width: 100%;
+        justify-content: space-between;
+    }
+    
+    #searchPlayer {
+        width: 100%;
+        flex: none;
+    }
+    
+    .responsive-btn {
+        flex: 1; /* Étire le bouton reset si besoin sur mobile */
+        min-width: 80px;
+    }
+}
