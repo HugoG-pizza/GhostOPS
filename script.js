@@ -152,20 +152,24 @@ window.renderGrid = function() {
         return diff !== 0 ? diff : a.name.localeCompare(b.name);
     });
 
-    // 3. NOUVELLE LOGIQUE DE FILTRES INTELLIGENTS
+    // 3. LOGIQUE DE FILTRES (Avec exclusion totale des ABS)
     let filteredMembers = sortedMembers.filter(m => {
+        
+        // --- NOUVEAU : On cache TOTALEMENT les joueurs ABS ---
+        if (m.rank === 'ABS') return false;
+
         // Filtre de nom
         if (search && !m.name.toLowerCase().includes(search)) return false;
         
         const rData = rosterData[m.name] || {};
 
-        // Cas 1 : Seulement un Personnage sélectionné (montre ceux qui l'ont, donc != NAN)
+        // Cas 1 : Seulement un Personnage sélectionné
         if (filterChar !== "ALL" && filterLevel === "ALL") {
             const lvl = rData[filterChar] || "NAN";
             if (lvl === "NAN") return false;
         }
         
-        // Cas 2 : Seulement un Niveau sélectionné (montre ceux qui ont AU MOINS un perso à ce niveau)
+        // Cas 2 : Seulement un Niveau sélectionné
         else if (filterChar === "ALL" && filterLevel !== "ALL") {
             let hasLevelMatch = false;
             for (let c of CHARACTERS) {
@@ -196,7 +200,7 @@ window.renderGrid = function() {
         let rowHTML = `
             <tr>
                 <td class="player-cell">
-                    <span class="rank-mini-badge ${m.rank === 'ABS' ? 'abs-badge' : ''}">${m.rank}</span>
+                    <span class="rank-mini-badge">${m.rank}</span>
                     <span class="player-name">${m.name}</span>
                 </td>
         `;
